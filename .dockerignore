@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.git/
+.gitignore
+.gitattributes
+models/
+bin/
+scratch/
+*.md
+.venv/
+venv/
