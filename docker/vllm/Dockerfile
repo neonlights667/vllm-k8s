@@ -1,4 +1,4 @@
-﻿FROM vllm/vllm-openai-cpu:v0.31.0@sha256:495c84fe30f3572b83a78100a1e8ba423dbb77fc532ecefebe114e6b77327bd9
+FROM vllm/vllm-openai-cpu:v0.31.0@sha256:495c84fe30f3572b83a78100a1e8ba423dbb77fc532ecefebe114e6b77327bd9
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -18,7 +18,7 @@ RUN groupadd -g 1000 appgroup 2>/dev/null || true && \
     python3 -m pip check
 
 WORKDIR /app
-COPY --chown=root:root --chmod=0555 privacy_filter.py logging_config.json entrypoint.sh requirements.txt /app/
+COPY --chown=root:root --chmod=0555 privacy_filter.py logging_config.json entrypoint.sh auth_middleware.py requirements.txt /app/
 
 USER 1000:1000
 EXPOSE 8000
