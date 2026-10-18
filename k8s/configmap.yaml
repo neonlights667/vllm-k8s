@@ -1,0 +1,19 @@
+﻿apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vllm-config
+  namespace: llm-inference
+data:
+  MODEL_ID: "Qwen/Qwen3.5-0.8B"
+  MODEL_CACHE_DIR: "/models"
+  HOST: "0.0.0.0"
+  PORT: "8000"
+  DTYPE: "bfloat16"
+  MAX_MODEL_LEN: "2048"
+  VLLM_CPU_KVCACHE_SPACE: "1"
+  OMP_NUM_THREADS: "3"
+  VLLM_CPU_OMP_THREADS_BIND: "nobind"
+  KMP_BLOCKTIME: "1"
+  VLLM_NO_USAGE_STATS: "1"
+  DO_NOT_TRACK: "1"
+  EXTRA_ARGS: "--max-num-seqs 16"
