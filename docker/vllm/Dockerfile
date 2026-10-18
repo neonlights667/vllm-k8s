@@ -18,7 +18,7 @@ RUN groupadd -g 1000 appgroup 2>/dev/null || true && \
     python3 -m pip check
 
 WORKDIR /app
-COPY --chown=root:root --chmod=0555 entrypoint.sh requirements.txt /app/
+COPY --chown=root:root --chmod=0555 privacy_filter.py logging_config.json entrypoint.sh requirements.txt /app/
 
 USER 1000:1000
 EXPOSE 8000
