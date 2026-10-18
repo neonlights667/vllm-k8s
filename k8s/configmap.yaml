@@ -1,4 +1,4 @@
-﻿apiVersion: v1
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: vllm-config
@@ -13,7 +13,7 @@ data:
   VLLM_CPU_KVCACHE_SPACE: "1"
   OMP_NUM_THREADS: "3"
   VLLM_CPU_OMP_THREADS_BIND: "nobind"
-  KMP_BLOCKTIME: "1"
+  KMP_BLOCKTIME: "0"
   VLLM_NO_USAGE_STATS: "1"
   DO_NOT_TRACK: "1"
   EXTRA_ARGS: "--max-num-seqs 16"
