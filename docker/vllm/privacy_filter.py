@@ -1,4 +1,4 @@
-﻿import logging
+import logging
 import re
 import traceback
 
@@ -10,8 +10,12 @@ class PrivacyLogFilter(logging.Filter):
         r"((?:prompt|user_prompt|instruction|instructions|input|generated_text)\s*[:=]\s*|[\"'](?:prompt|user_prompt|instruction|instructions|input|generated_text)[\"']\s*:\s*)(?:'''[\s\S]*?(?:'''|$)|(?:\"{3})[\s\S]*?(?:(?:\"{3})|$)|'(?:\\.|[^'\\])*(?:'|$)|(?:\"(?:\\.|[^\"\\])*(?:\"|$))|`(?:\\.|[^`\\])*(?:`|$))",
         re.IGNORECASE,
     )
-    UNQUOTED_PROMPT_PATTERN = re.compile(
-        r"(?<![?&])\b((?:prompt|user_prompt|instruction|instructions|input|generated_text)\s*[:=]\s*)(?!['\"`]|\[REDACTED\])(.*?)(?=(?:,\s*(?:params|sampling_params|prompt_token_ids|lora_request|request_id)\s*[:=]|\s+HTTP/\d|\r?\n|$))",
+    DELIMITED_PROMPT_PATTERN = re.compile(
+        r"(?<![?&])\b((?:prompt|user_prompt|instruction|instructions|input|generated_text)\s*[:=]\s*)(?!['\"`]|\[REDACTED\])([\s\S]*?)(?=(?:,\s*(?:params|sampling_params|prompt_token_ids|lora_request|request_id)\s*[:=]|\s+HTTP/\d))",
+        re.IGNORECASE,
+    )
+    UNQUOTED_PROMPT_LINE_PATTERN = re.compile(
+        r"(?<![?&])\b((?:prompt|user_prompt|instruction|instructions|input|generated_text)\s*[:=]\s*)(?!['\"`]|\[REDACTED\])(.*?)(?=(?:\r?\n|$))",
         re.IGNORECASE,
     )
     TOKEN_IDS_PATTERN = re.compile(
@@ -19,7 +23,7 @@ class PrivacyLogFilter(logging.Filter):
         re.IGNORECASE,
     )
     OUTPUT_PATTERN = re.compile(
-        r"((?:output|generated_text|text|content|stop|bad_words)\s*[:=]\s*|[\"'](?:output|generated_text|text|content|stop|bad_words)[\"']\s*:\s*)(?:'''[\s\S]*?(?:'''|$)|(?:\"{3})[\s\S]*?(?:(?:\"{3})|$)|'(?:\\.|[^'\\])*(?:'|$)|(?:\"(?:\\.|[^\"\\])*(?:\"|$))|`(?:\\.|[^`\\])*(?:`|$))",
+        r"((?:output|generated_text|text|content|stop|bad_words|structured_outputs|extra_args|tools|json_schema)\s*[:=]\s*|[\"'](?:output|generated_text|text|content|stop|bad_words|structured_outputs|extra_args|tools|json_schema)[\"']\s*:\s*)(?:'''[\s\S]*?(?:'''|$)|(?:\"{3})[\s\S]*?(?:(?:\"{3})|$)|'(?:\\.|[^'\\])*(?:'|$)|(?:\"(?:\\.|[^\"\\])*(?:\"|$))|`(?:\\.|[^`\\])*(?:`|$)|\[(?:'[^']*'|\"[^\"]*\"|[^\]\r\n])*\]|\{[^}\r\n]*\})",
         re.IGNORECASE,
     )
     TOKEN_PATTERN = re.compile(
@@ -53,7 +57,8 @@ class PrivacyLogFilter(logging.Filter):
         if not raw_message:
             return raw_message
         msg = self.QUOTED_PROMPT_PATTERN.sub(r'\g<1>"[REDACTED]"', raw_message)
-        msg = self.UNQUOTED_PROMPT_PATTERN.sub(r'\g<1>"[REDACTED]"', msg)
+        msg = self.DELIMITED_PROMPT_PATTERN.sub(r'\g<1>"[REDACTED]"', msg)
+        msg = self.UNQUOTED_PROMPT_LINE_PATTERN.sub(r'\g<1>"[REDACTED]"', msg)
         msg = self.TOKEN_IDS_PATTERN.sub(self._redact_token_ids, msg)
         msg = self.OUTPUT_PATTERN.sub(r'\g<1>"[REDACTED]"', msg)
         msg = self.TOKEN_PATTERN.sub(self._redact_token, msg)
@@ -62,6 +67,9 @@ class PrivacyLogFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
         try:
             original_message = record.getMessage()
+
+            if record.name == "uvicorn.access" and ('"GET /health ' in original_message or '"GET /health"' in original_message):
+                return False
 
             sanitized_message = self.redact_sensitive_fields(original_message)
 
