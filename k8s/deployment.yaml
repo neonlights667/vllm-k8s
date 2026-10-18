@@ -1,4 +1,4 @@
-﻿apiVersion: apps/v1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: vllm-server
@@ -27,6 +27,38 @@ spec:
         fsGroupChangePolicy: OnRootMismatch
         seccompProfile:
           type: RuntimeDefault
+      initContainers:
+        - name: model-downloader
+          image: model-downloader:0.1.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          envFrom:
+            - configMapRef:
+                name: vllm-config
+          env:
+            - name: HF_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: vllm-secrets
+                  key: HF_TOKEN
+          volumeMounts:
+            - name: model-storage
+              mountPath: /models
+            - name: downloader-tmp
+              mountPath: /tmp
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+              ephemeral-storage: "256Mi"
+            limits:
+              cpu: "2"
+              memory: "2Gi"
+              ephemeral-storage: "2Gi"
       containers:
         - name: vllm
           image: vllm-cpu:0.1.0
@@ -51,6 +83,7 @@ spec:
           volumeMounts:
             - name: model-storage
               mountPath: /models
+              readOnly: true
             - name: shm
               mountPath: /dev/shm
             - name: vllm-tmp
@@ -98,6 +131,9 @@ spec:
           emptyDir:
             medium: Memory
             sizeLimit: 2Gi
+        - name: downloader-tmp
+          emptyDir:
+            sizeLimit: 1Gi
         - name: vllm-tmp
           emptyDir:
             sizeLimit: 2Gi
